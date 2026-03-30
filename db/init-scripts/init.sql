@@ -14,5 +14,3 @@ CREATE TABLE "refresh_tokens"(
   "token" text NOT NULL
 );
 
-
-ALTER TABLE "refresh_tokens" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
