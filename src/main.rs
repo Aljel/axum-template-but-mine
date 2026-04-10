@@ -10,8 +10,6 @@ use axum::Router;
 use axum::response::IntoResponse;
 use axum::routing::*;
 use dotenv::dotenv;
-use sqlx::Pool;
-use sqlx::Postgres;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
@@ -30,18 +28,17 @@ async fn aboba() -> impl IntoResponse {
 #[openapi(info(title = "Blazingly-fast axum template API!!!", version = "1.0.0"))]
 struct ApiDoc;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub db_pool: Arc<Pool<Postgres>>,
-}
-
 #[tokio::main]
 async fn main() {
     dotenv().ok();
 
     let config = Config::from_env();
     let db_pool = Arc::new(get_db_pool(&config.database_url).await);
-    let state = AppState { db_pool };
+    let state = AppState::new(
+        db_pool,
+        config.secret_key.to_owned(),
+        config.secret_refresh_key.to_owned(),
+    );
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
 
