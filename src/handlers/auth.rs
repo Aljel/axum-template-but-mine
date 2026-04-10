@@ -4,6 +4,7 @@ use utoipa::OpenApi;
 use crate::{
     AppState,
     errors::auth::AuthError,
+    repository::{is_unique_violation, users::UserRepository},
     schemas::users::{LoginUser, RegisterUser},
     services::auth::password_hashing::hash_password,
 };
@@ -38,28 +39,18 @@ pub async fn register(
     State(state): State<AppState>,
     Json(user_data): Json<RegisterUser>,
 ) -> Result<impl IntoResponse, AuthError> {
-    let pool = state.db_pool.clone();
-    let existing = sqlx::query("SELECT id FROM users WHERE email = $1")
-        .bind(&user_data.email)
-        .fetch_optional(pool.as_ref())
-        .await?;
-
-    if existing.is_some() {
-        return Err(AuthError::UserAlreadyExists);
+    let repo = state.user_repo.clone();
+    match repo
+        .create(repo.db_pool.clone().as_ref(), user_data.clone())
+        .await
+    {
+        Ok(_) => Ok((
+            StatusCode::OK,
+            Json((user_data.email.clone(), user_data.email)),
+        )),
+        Err(e) if is_unique_violation(&e) => Err(AuthError::UserAlreadyExists),
+        Err(e) => Err(AuthError::Db(e)),
     }
-
-    let password_hash = hash_password(&user_data.password);
-    let _user = sqlx::query("INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3);")
-        .bind(user_data.name)
-        .bind(&user_data.email)
-        .bind(password_hash)
-        .execute(pool.as_ref())
-        .await?;
-
-    Ok((
-        StatusCode::OK,
-        Json((user_data.email.clone(), user_data.email)),
-    ))
 }
 
 #[utoipa::path(
@@ -76,14 +67,13 @@ pub async fn login(
     State(state): State<AppState>,
     Json(user_data): Json<LoginUser>,
 ) -> Result<impl IntoResponse, AuthError> {
-    let pool = state.db_pool.clone();
-    let existing = sqlx::query("SELECT id FROM users WHERE email = $1 AND password_hash = $2;")
-        .bind(&user_data.email)
-        .bind(hash_password(&user_data.password))
-        .fetch_optional(pool.as_ref())
-        .await?;
+    let repo = state.user_repo.clone();
 
-    if existing.is_some() {
+    if repo
+        .check_login(&user_data.email, &hash_password(&user_data.password))
+        .await?
+        .is_some()
+    {
         return Ok((
             StatusCode::OK,
             Json((user_data.email.clone(), user_data.email)),
