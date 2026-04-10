@@ -17,3 +17,13 @@ pub enum Role {
     User,
     Admin,
 }
+
+impl From<String> for Role {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "user" => Role::User,
+            "admin" => Role::Admin,
+            _ => panic!("Role must be admin or user"),
+        }
+    }
+}
