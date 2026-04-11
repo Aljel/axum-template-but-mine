@@ -26,3 +26,33 @@ impl<Db: sqlx::Database> TokenRepo<Db> {
         Self { db_pool }
     }
 }
+
+impl TokenRepository for TokenRepo<Postgres> {
+    async fn get(&self, user_id: &Uuid) -> sqlx::Result<Option<String>> {
+        sqlx::query_scalar!(
+            "SELECT token FROM refresh_tokens
+            WHERE user_id = $1",
+            user_id
+        )
+        .fetch_optional(self.db_pool.clone().as_ref())
+        .await
+    }
+
+    async fn create<'e, E>(
+        &self,
+        executer: E,
+        refreh_token_info: (&Uuid, &str),
+    ) -> sqlx::Result<PgRow>
+    where
+        E: Executor<'e, Database = sqlx::Postgres>,
+    {
+        sqlx::query!(
+            "INSERT INTO refresh_tokens (user_id, token) VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET token = $2",
+            refreh_token_info.0,
+            refreh_token_info.1
+        )
+        .fetch_one(executer)
+        .await
+    }
+}
