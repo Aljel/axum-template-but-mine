@@ -53,6 +53,18 @@ impl TokenService<Postgres> {
         }
     }
 
+    pub async fn refresh_tokens(&self, old_refresh_token: String) -> Result<Tokens> {
+        let cur_claims = self.validate_refresh_token(&old_refresh_token).await?;
+
+        // NOTE: если пользователь не найден, значит токен не валидный
+        let user = match self.user_repo.get_by_id(&cur_claims.sub).await? {
+            Some(u) => u,
+            None => return Err(TokenError::InvalidToken),
+        };
+
+        self.generate_tokens(&user).await
+    }
+
     pub async fn generate_tokens(&self, user: &User) -> Result<Tokens> {
         let access_token = self.generate_access_token(user)?;
         let refresh_token = self.generate_refresh_token(user)?;
