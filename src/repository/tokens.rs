@@ -13,3 +13,16 @@ pub trait TokenRepository {
         E: Executor<'e, Database = sqlx::Postgres>;
 }
 
+#[derive(Clone)]
+pub struct TokenRepo<Db>
+where
+    Db: sqlx::Database,
+{
+    pub db_pool: Arc<Pool<Db>>,
+}
+
+impl<Db: sqlx::Database> TokenRepo<Db> {
+    pub fn new(db_pool: Arc<Pool<Db>>) -> Self {
+        Self { db_pool }
+    }
+}
