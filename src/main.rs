@@ -2,7 +2,7 @@ mod config;
 mod errors;
 mod handlers;
 mod models;
-mod repository;
+mod repositories;
 mod schemas;
 mod services;
 

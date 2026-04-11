@@ -4,8 +4,8 @@ use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::sync::Arc;
 
-use crate::repository::tokens::TokenRepo;
-use crate::repository::users::UserRepo;
+use crate::repositories::tokens::TokenRepo;
+use crate::repositories::users::UserRepo;
 use crate::services::auth::tokens::TokenService;
 
 pub struct Config {

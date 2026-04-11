@@ -4,7 +4,7 @@ use utoipa::OpenApi;
 use crate::{
     AppState,
     errors::auth::AuthError,
-    repository::{is_unique_violation, users::UserRepository},
+    repositories::{is_unique_violation, users::UserRepository},
     schemas::users::{LoginUser, RegisterUser},
     services::auth::hashing::hash,
 };
