@@ -108,4 +108,16 @@ impl TokenService<Postgres> {
             &EncodingKey::from_secret(self.secret_refresh.as_bytes()),
         )?)
     }
+
+    pub fn validate_access_token(&self, token: &str) -> Result<Claims> {
+        let decoding_key = DecodingKey::from_secret(self.secret.as_bytes());
+        let mut validation = Validation::new(Algorithm::HS256);
+
+        validation.leeway = 0;
+        validation.required_spec_claims.insert("exp".to_string());
+
+        let token_data = decode::<Claims>(token, &decoding_key, &validation)?;
+        Ok(token_data.claims)
+    }
+
 }
