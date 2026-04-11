@@ -21,3 +21,15 @@ pub struct Claims {
     pub jti: Option<String>,
 }
 
+#[derive(Clone)]
+pub struct CurrentUser(pub Claims);
+
+pub struct TokenService<Db: Database> {
+    secret: Arc<String>,
+    secret_refresh: Arc<String>,
+    access_duration: usize,
+    refresh_duration: usize,
+    token_repo: Arc<TokenRepo<Db>>,
+    user_repo: Arc<UserRepo<Postgres>>,
+}
+
