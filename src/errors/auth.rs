@@ -11,7 +11,7 @@ pub enum AuthError {
     UserAlreadyExists,
 
     #[error("User not found")]
-    NotFound,
+    Unauthorized,
 }
 
 impl IntoResponse for AuthError {
@@ -19,7 +19,7 @@ impl IntoResponse for AuthError {
         match self {
             Self::Db(er) => (StatusCode::INTERNAL_SERVER_ERROR, er.to_string()),
             Self::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists".to_string()),
-            Self::NotFound => (StatusCode::NOT_FOUND, "User not found".to_string()),
+            Self::Unauthorized => (StatusCode::UNAUTHORIZED, "User unauthorized".to_string()),
         }
         .into_response()
     }

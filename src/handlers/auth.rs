@@ -6,7 +6,7 @@ use crate::{
     errors::auth::AuthError,
     repository::{is_unique_violation, users::UserRepository},
     schemas::users::{LoginUser, RegisterUser},
-    services::auth::password_hashing::hash_password,
+    services::auth::hashing::hash,
 };
 
 pub struct AuthRouter;
@@ -27,7 +27,7 @@ pub struct AuthDocs;
 
 #[utoipa::path(
     post,
-    path = "/register",
+    path = "/registration",
     request_body = RegisterUser,
     responses(
         (status = 200, description = "Пользователь зарегестрирован", body = (String, String)),
@@ -70,7 +70,7 @@ pub async fn login(
     let repo = state.user_repo.clone();
 
     if repo
-        .check_login(&user_data.email, &hash_password(&user_data.password))
+        .check_login(&user_data.email, &hash(&user_data.password))
         .await?
         .is_some()
     {
@@ -80,5 +80,5 @@ pub async fn login(
         ));
     }
 
-    Err(AuthError::NotFound)
+    Err(AuthError::Unauthorized)
 }
