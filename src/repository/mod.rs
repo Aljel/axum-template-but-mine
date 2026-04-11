@@ -1,4 +1,5 @@
 pub mod users;
+pub mod tokens;
 
 /// Является ли ошибка вставкой уже существующей строки?
 pub fn is_unique_violation(err: &sqlx::Error) -> bool {
