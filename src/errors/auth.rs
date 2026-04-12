@@ -17,6 +17,9 @@ pub enum AuthError {
 
     #[error("User not found")]
     Unauthorized,
+
+    #[error("User doesn't have sufficient rights for this action.")]
+    Forbidden,
 }
 
 impl IntoResponse for AuthError {
@@ -30,6 +33,12 @@ impl IntoResponse for AuthError {
             Self::Unauthorized => {
                 (StatusCode::UNAUTHORIZED, "User unauthorized".to_string()).into_response()
             }
+
+            Self::Forbidden => (
+                StatusCode::UNAUTHORIZED,
+                "User doesn't have sufficient rights for this action.".to_string(),
+            )
+                .into_response(),
         }
     }
 }
