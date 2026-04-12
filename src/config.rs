@@ -30,11 +30,11 @@ pub async fn get_db_pool(database_url: &str) -> sqlx::PgPool {
 
 #[derive(Clone)]
 pub struct AppState {
-    // NOTE: репозитории
+    // NOTE: Репозитории
     pub user_repo: Arc<UserRepo<Postgres>>,
     pub token_repo: Arc<TokenRepo<Postgres>>,
 
-    // NOTE: сервисы
+    // NOTE: Сервисы
     pub token_serv: Arc<TokenService<Postgres>>,
 
     // NOTE: Ключи и тп
@@ -48,20 +48,25 @@ impl AppState {
         secret_key: String,
         secret_refresh_key: String,
     ) -> Self {
+        let secret_key = Arc::new(secret_key);
+        let secret_refresh_key = Arc::new(secret_refresh_key);
+
+        // NOTE: Репозитории
         let user_repo = Arc::new(UserRepo::new(db_pool.clone()));
         let token_repo = Arc::new(TokenRepo::new(db_pool.clone()));
 
-        let secret_key = Arc::new(secret_key);
-        let secret_refresh_key = Arc::new(secret_refresh_key);
+        // NOTE: Сервисы
+        let token_serv = Arc::new(TokenService::new(
+            secret_key.clone(),
+            secret_refresh_key.clone(),
+            5,
+            token_repo.clone(),
+            user_repo.clone(),
+            1440,
+        ));
+
         Self {
-            token_serv: Arc::new(TokenService::new(
-                secret_key.clone(),
-                secret_refresh_key.clone(),
-                5,
-                token_repo.clone(),
-                user_repo.clone(),
-                1440,
-            )),
+            token_serv,
             user_repo,
             token_repo,
             secret_key,
