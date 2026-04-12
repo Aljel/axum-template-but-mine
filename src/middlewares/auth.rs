@@ -3,6 +3,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use axum::response::{IntoResponse};
 use http::Request;
 use sqlx::Postgres;
 use tower::{Layer, Service};
@@ -32,14 +33,15 @@ pub struct AuthMiddleware<S> {
 
 impl<S, ReqBody> Service<Request<ReqBody>> for AuthMiddleware<S>
 where
-    S: Service<Request<ReqBody>, Error = AuthError> + Clone + Send + 'static,
+    S: Service<Request<ReqBody>, Error = axum::response::Response> + Clone + Send + 'static,
     S::Future: Send + 'static,
     ReqBody: Send + 'static,
 {
     type Response = S::Response;
-    type Error = S::Error;
-    type Future = futures::future::BoxFuture<'static, Result<Self::Response, Self::Error>>;
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    type Error = axum::response::Response;
+    type Future =
+        futures::future::BoxFuture<'static, Result<Self::Response, axum::response::Response>>;
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), axum::response::Response>> {
         self.inner.poll_ready(cx)
     }
 
@@ -52,11 +54,14 @@ where
                 .get(http::header::AUTHORIZATION)
                 .and_then(|header| header.to_str().ok())
             {
-                Some(aut_h) => aut_h,
-                None => return Err(AuthError::Unauthorized),
+                Some(aut_h) => aut_h[5..].trim(),
+                None => return Err(AuthError::Unauthorized.into_response()),
             };
 
-            let claims = token_serv.validate_access_token(auth_header)?;
+            let claims = match token_serv.validate_access_token(auth_header) {
+                Ok(cl) => cl,
+                Err(er) => return Err(er.into_response()),
+            };
 
             // NOTE: Если токен валидный, то извлеченные claims добавили в запрос
             req.extensions_mut().insert(claims);
@@ -65,4 +70,3 @@ where
         })
     }
 }
-
