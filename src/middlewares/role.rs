@@ -11,6 +11,16 @@ pub struct RoleLayer {
     allowed_roles: Vec<Role>,
 }
 
+impl<S> Layer<S> for RoleLayer {
+    type Service = RoleGuardMiddleware<S>;
+    fn layer(&self, inner: S) -> Self::Service {
+        RoleGuardMiddleware {
+            inner,
+            allowed_roles: self.allowed_roles.clone(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct RoleGuardMiddleware<S> {
     inner: S,
