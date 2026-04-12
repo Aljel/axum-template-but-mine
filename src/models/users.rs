@@ -1,3 +1,4 @@
+use enum_iterator::{Sequence, all};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -25,11 +26,21 @@ impl From<RegisterUser> for User {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone)]
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, Sequence, PartialEq)]
 #[sqlx(type_name = "text", rename_all = "lowercase")]
 pub enum Role {
     User,
     Admin,
+}
+
+impl Role {
+    pub fn all() -> Vec<Self> {
+        all::<Role>().collect()
+    }
+
+    pub fn admin_only() -> Vec<Self> {
+        vec![Role::Admin]
+    }
 }
 
 impl From<String> for Role {
