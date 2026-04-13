@@ -33,6 +33,9 @@ pub struct AbobaDocs;
 #[utoipa::path(
     get,
     path = "/aboba",
+    security(
+        ("bearer_auth" = [])
+    ),
     responses(
         (status = 200, description = "Aboba", body = String),
         (status = 500, description = "Технические шокаладки", body = String)
@@ -63,6 +66,20 @@ async fn main() {
     let mut open_api = ApiDoc::openapi()
         .nest("/auth", AuthDocs::openapi())
         .nest("/aboba", AbobaDocs::openapi());
+
+    // NOTE: добавляет подстановку токена в запрос
+    open_api
+        .components
+        .get_or_insert_with(Default::default)
+        .add_security_scheme(
+            "bearer_auth",
+            SecurityScheme::Http(
+                HttpBuilder::new()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .bearer_format("JWT")
+                    .build(),
+            ),
+        );
 
     let swagger_router = SwaggerUi::new("/docs").url("/api-docs/openapi.json", open_api);
 
