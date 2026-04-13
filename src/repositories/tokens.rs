@@ -1,9 +1,8 @@
-use sqlx::{
-    Executor, Pool, Postgres,
-    postgres::{PgQueryResult},
-};
+use sqlx::{Executor, Pool, Postgres, postgres::PgQueryResult};
 use std::sync::Arc;
 use uuid::Uuid;
+
+use crate::services::auth::hashing::hash;
 
 pub trait TokenRepository {
     async fn get(&self, user_id: &Uuid) -> sqlx::Result<Option<String>>;
@@ -53,7 +52,7 @@ impl TokenRepository for TokenRepo<Postgres> {
             "INSERT INTO refresh_tokens (user_id, token) VALUES ($1, $2)
             ON CONFLICT (user_id) DO UPDATE SET token = $2",
             refresh_token_info.0,
-            refresh_token_info.1
+            hash(refresh_token_info.1)
         )
         .execute(executer)
         .await
