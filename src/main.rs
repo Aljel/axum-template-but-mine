@@ -1,13 +1,14 @@
 mod config;
 mod errors;
 mod handlers;
+mod middlewares;
 mod models;
 mod repositories;
 mod schemas;
 mod services;
-mod middlewares;
 
 use axum::Router;
+use axum::middleware::from_fn;
 use axum::response::IntoResponse;
 use axum::routing::*;
 use dotenv::dotenv;
@@ -15,12 +16,16 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
+use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa_swagger_ui::SwaggerUi;
 
 use config::*;
 
 use crate::handlers::auth::AuthDocs;
 use crate::handlers::auth::AuthRouter;
+use crate::middlewares::auth::auth_middleware;
+use crate::middlewares::role::role_middleware;
+use crate::models::users::Role;
 
 #[derive(OpenApi)]
 #[openapi(paths(aboba))]
@@ -55,15 +60,28 @@ async fn main() {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
 
-    let open_api = ApiDoc::openapi()
+    let mut open_api = ApiDoc::openapi()
         .nest("/auth", AuthDocs::openapi())
         .nest("/aboba", AbobaDocs::openapi());
 
     let swagger_router = SwaggerUi::new("/docs").url("/api-docs/openapi.json", open_api);
 
     let auth_router = AuthRouter::set_router();
-    let app = Router::new()
+    let protect_aboba_router = Router::new()
         .route("/aboba/aboba", get(aboba))
+        .route_layer(from_fn(move |req, next| async move {
+            role_middleware(req, next, Role::admin_only()).await
+        }))
+        .route_layer({
+            let token_serv = state.token_serv.clone();
+            from_fn(move |req, next| {
+                let token_serv = token_serv.clone();
+                async move { auth_middleware(req, next, token_serv.clone()).await }
+            })
+        });
+
+    let app = Router::new()
+        .merge(protect_aboba_router)
         .nest("/auth", auth_router)
         .merge(swagger_router)
         .with_state(state)
