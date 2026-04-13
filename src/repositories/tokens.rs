@@ -1,4 +1,7 @@
-use sqlx::{Executor, Pool, Postgres, postgres::PgRow};
+use sqlx::{
+    Executor, Pool, Postgres,
+    postgres::{PgQueryResult, PgRow},
+};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -8,7 +11,7 @@ pub trait TokenRepository {
         &self,
         executer: E,
         refreh_token_info: (&Uuid, &str),
-    ) -> sqlx::Result<PgRow>
+    ) -> sqlx::Result<PgQueryResult>
     where
         E: Executor<'e, Database = sqlx::Postgres>;
 }
@@ -41,18 +44,18 @@ impl TokenRepository for TokenRepo<Postgres> {
     async fn create<'e, E>(
         &self,
         executer: E,
-        refreh_token_info: (&Uuid, &str),
-    ) -> sqlx::Result<PgRow>
+        refresh_token_info: (&Uuid, &str),
+    ) -> sqlx::Result<PgQueryResult>
     where
         E: Executor<'e, Database = sqlx::Postgres>,
     {
         sqlx::query!(
             "INSERT INTO refresh_tokens (user_id, token) VALUES ($1, $2)
             ON CONFLICT (user_id) DO UPDATE SET token = $2",
-            refreh_token_info.0,
-            refreh_token_info.1
+            refresh_token_info.0,
+            refresh_token_info.1
         )
-        .fetch_one(executer)
+        .execute(executer)
         .await
     }
 }
