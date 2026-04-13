@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 );
 
 CREATE TABLE IF NOT EXISTS "refresh_tokens"(
-  "user_id" UUID NOT NULL,
+  "user_id" UUID NOT NULL UNIQUE,
   "token" text NOT NULL
 );
 
