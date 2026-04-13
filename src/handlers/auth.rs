@@ -4,6 +4,7 @@ use utoipa::OpenApi;
 use crate::{
     AppState,
     errors::auth::AuthError,
+    models::tokens::Tokens,
     repositories::{is_unique_violation, users::UserRepository},
     schemas::users::{LoginUser, RegisterUser},
     services::auth::hashing::hash,
@@ -30,7 +31,7 @@ pub struct AuthDocs;
     path = "/registration",
     request_body = RegisterUser,
     responses(
-        (status = 200, description = "Пользователь зарегестрирован", body = (String, String)),
+        (status = 200, description = "Пользователь зарегестрирован", body = Tokens),
         (status = 409, description = "Пользователь с такой почтой уже существует", body = String),
         (status = 500, description = "Технические шокаладки с бд", body = String)
     )
@@ -40,13 +41,15 @@ pub async fn register(
     Json(user_data): Json<RegisterUser>,
 ) -> Result<impl IntoResponse, AuthError> {
     let repo = state.user_repo.clone();
+    let token_serv = state.token_serv.clone();
+
     match repo
         .create(repo.db_pool.clone().as_ref(), user_data.clone())
         .await
     {
-        Ok(_) => Ok((
+        Ok(user) => Ok((
             StatusCode::OK,
-            Json((user_data.email.clone(), user_data.email)),
+            Json(token_serv.generate_tokens(&user).await?),
         )),
         Err(e) if is_unique_violation(&e) => Err(AuthError::UserAlreadyExists),
         Err(e) => Err(AuthError::Db(e)),
@@ -58,8 +61,8 @@ pub async fn register(
     path = "/login",
     request_body = LoginUser,
     responses(
-        (status = 200, description = "Вход успешен", body = (String, String)),
-        (status = 404, description = "Пользователь не найден", body = String),
+        (status = 200, description = "Вход успешен", body = Tokens),
+        (status = 401, description = "Не верная почта или пароль", body = String),
         (status = 500, description = "Технические шокаладки с бд", body = String)
     )
 )]
@@ -68,17 +71,16 @@ pub async fn login(
     Json(user_data): Json<LoginUser>,
 ) -> Result<impl IntoResponse, AuthError> {
     let repo = state.user_repo.clone();
+    let token_serv = state.token_serv.clone();
 
-    if repo
+    match repo
         .check_login(&user_data.email, &hash(&user_data.password))
         .await?
-        .is_some()
     {
-        return Ok((
+        Some(user) => Ok((
             StatusCode::OK,
-            Json((user_data.email.clone(), user_data.email)),
-        ));
+            Json(token_serv.generate_tokens(&user).await?),
+        )),
+        None => Err(AuthError::Unauthorized),
     }
-
-    Err(AuthError::Unauthorized)
 }
