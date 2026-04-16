@@ -33,10 +33,11 @@ use crate::models::users::Role;
 pub struct AbobaDocs;
 #[utoipa::path(
     get,
-    path = "/aboba",
+    path = "/abobus",
     security(
         ("bearer_auth" = [])
     ),
+    tag = "aboba",
     responses(
         (status = 200, description = "Aboba", body = String),
         (status = 500, description = "Технические шокаладки", body = String)
@@ -63,7 +64,6 @@ async fn main() {
     );
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
 
-
     // NOTE: сюда добавляем доки для swagger-а
     let mut open_api = ApiDoc::openapi()
         .nest("/auth", AuthDocs::openapi())
@@ -85,12 +85,11 @@ async fn main() {
         );
     let swagger_router = SwaggerUi::new("/docs").url("/api-docs/openapi.json", open_api);
 
-
     let user_router = UserRouter::set_router(state.clone());
     let auth_router = AuthRouter::set_router();
 
     let protect_aboba_router = Router::new()
-        .route("/aboba/aboba", get(aboba))
+        .route("/abobus", get(aboba))
         .route_layer(from_fn(move |req, next| async move {
             role_middleware(req, next, Role::all()).await
         }))
@@ -103,7 +102,7 @@ async fn main() {
         });
 
     let app = Router::new()
-        .merge(protect_aboba_router)
+        .nest("/aboba", protect_aboba_router)
         .nest("/auth", auth_router)
         .nest("/user", user_router)
         .merge(swagger_router)
