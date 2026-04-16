@@ -12,6 +12,7 @@ use axum::middleware::from_fn;
 use axum::response::IntoResponse;
 use axum::routing::*;
 use dotenv::dotenv;
+use http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
@@ -111,7 +112,7 @@ async fn main() {
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_methods(Any)
-                .allow_headers(Any),
+                .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]),
         );
 
     println!("Listening on http://{}", &addr);
