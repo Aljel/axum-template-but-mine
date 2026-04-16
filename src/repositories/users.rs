@@ -1,13 +1,14 @@
 use macroses::NewTypeDeref;
+use serde::Deserialize;
 use sqlx::{Executor, Pool, Postgres, postgres::PgQueryResult};
 use std::{ops::Deref, sync::Arc};
 use uuid::Uuid;
 
 use crate::{models::users::User, schemas::users::RegisterUser};
 
-#[derive(NewTypeDeref)]
+#[derive(NewTypeDeref, Deserialize)]
 pub struct Limit(pub u64);
-#[derive(NewTypeDeref)]
+#[derive(NewTypeDeref, Deserialize)]
 pub struct Offset(pub u64);
 
 pub trait UserRepository {
