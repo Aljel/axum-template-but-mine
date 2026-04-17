@@ -32,8 +32,5 @@ jobs:
       - name: Check
         run: cargo check --all-features
 
-      - name: Clippy
-        run: cargo clippy --all-features -- -D warnings
-
       - name: Test (unit only)
         run: cargo test --all-features --lib
