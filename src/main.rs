@@ -21,6 +21,7 @@ use crate::routes::{get_all_routes, get_swagger_routes};
 
 #[tokio::main]
 async fn main() {
+    println!("MEMES COOL\n");
     dotenv().ok();
 
     let config = Config::from_env();
